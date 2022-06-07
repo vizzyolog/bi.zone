@@ -1,18 +1,19 @@
 package cryptor
 
-type Cryptor struct {
+import "app/domain"
+
+type Cryptor struct{}
+
+func New() Cryptor {
+	return Cryptor{}
 }
 
-func (c *Cryptor) New() {
-
+func (c *Cryptor) Encode(event domain.Event) (domain.Event, error) {
+	event.Encrypted = true
+	return event, nil
 }
 
-func (c *Cryptor) Encode(b []byte) ([]byte, error) {
-	//TODO
-	return b, nil
-}
-
-func (c *Cryptor) Decode(b []byte) ([]byte, error) {
-	//TODO
-	return b, nil
+func (c *Cryptor) Decode(event domain.Event) (domain.Event, error) {
+	event.Encrypted = false
+	return event, nil
 }

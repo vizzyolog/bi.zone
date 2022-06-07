@@ -27,35 +27,33 @@ type eventController struct {
 	ret eventRetriever
 }
 
-func (ec *eventController) get(wr http.ResponseWriter, req *http.Request) {
-	vars := mux.Vars(req)
-	user, err := ec.ret.Get(req.Context(), vars["name"])
+func (ec *eventController) search(wr http.ResponseWriter, req *http.Request) {
+	posts, err := ec.ret.Search(req.Context(), events.Query{})
 	if err != nil {
 		respondErr(wr, err)
 		return
 	}
 
-	respond(wr, http.StatusOK, user)
+	respond(wr, http.StatusOK, posts)
 }
 
-func (ec *eventController) search(wr http.ResponseWriter, req *http.Request) {
-	vals := req.URL.Query()["t"]
-	users, err := ec.ret.Search(req.Context(), vals, 10)
+func (pc *eventController) get(wr http.ResponseWriter, req *http.Request) {
+	name := mux.Vars(req)["name"]
+	post, err := pc.ret.Get(req.Context(), name)
 	if err != nil {
 		respondErr(wr, err)
 		return
 	}
 
-	respond(wr, http.StatusOK, users)
+	respond(wr, http.StatusOK, post)
 }
 
 type eventRetriever interface {
-	Get(ctx context.Context, name string) (*domain.User, error)
-	Search(ctx context.Context, tags []string, limit int) ([]domain.User, error)
-	VerifySecret(ctx context.Context, name, secret string) bool
-}
-
-type postRetriever interface {
 	Get(ctx context.Context, name string) (*domain.Event, error)
 	Search(ctx context.Context, query events.Query) ([]domain.Event, error)
+}
+
+type eventPeristor interface {
+	Publish(ctx context.Context, event domain.Event) (*domain.Event, error)
+	Delete(ctx context.Context, name string) (*domain.Event, error)
 }

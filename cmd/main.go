@@ -1,17 +1,28 @@
 package main
 
 import (
+	"context"
 	"log"
+	"net/http"
 	"os"
 	"strconv"
 	"time"
 
+	"github.com/gorilla/mux"
+	"github.com/spf13/viper"
+
+	"app/interfaces/agentConsumer"
 	"app/interfaces/mongodb"
 	"app/interfaces/rest"
-	"app/pkg/cryptor"
-	"app/pkg/logger"
+	"app/interfaces/web"
 
-	"github.com/spf13/viper"
+	"app/pkg/cryptor"
+	"app/pkg/graceful"
+	"app/pkg/logger"
+	"app/pkg/middlewares"
+
+	"app/usecases/events"
+	"app/usecases/users"
 )
 
 func main() {
@@ -27,12 +38,16 @@ func main() {
 
 	log.Println("setting up rest api service")
 
-	eventStore := mongodb.NewEventStore(db)
 	userStore := mongodb.NewUserStore(db)
+	eventStore := mongodb.NewEventStore(db)
 
-	eventRetriver := event.NewRetriever(lg, eventStore)
+	userRegistration := users.NewRegistrar(lg, userStore)
+	userRetriever := users.NewRetriever(lg, userStore)
 
-	restHandler := rest.New(lg, userRegistration, userRetriever, postRet, postPub)
+	eventPersist := events.NewPersistar(lg, eventStore)
+	eventRetriver := events.NewRetriever(lg, eventStore)
+
+	restHandler := rest.New(lg, userRegistration, userRetriever, eventRetriver)
 	webHandler, err := web.New(lg, web.Config{
 		TemplateDir: cfg.TemplateDir,
 		StaticDir:   cfg.StaticDir,
@@ -41,21 +56,41 @@ func main() {
 		lg.Fatalf("failed to setup web handler: %v", err)
 	}
 
-	cryptor := cryptor.Cryptor.New()
-	_ = cryptor
-
-	tcpSrv := tcpSrv.NewTC
-	_ = tcpSrv
-
-	restHandler := rest.New(lg, userRegistration, userRetriever, postRet, postPub)
-	webHandler, err := web.New(lg, web.Config{
-		TemplateDir: cfg.TemplateDir,
-		StaticDir:   cfg.StaticDir,
-	})
-	if err != nil {
-		lg.Fatalf("failed to setup web handler: %v", err)
+	srv := setupServer(cfg, lg, webHandler, restHandler)
+	lg.Infof("listening for requests on :8080...")
+	if err := srv.ListenAndServe(); err != nil {
+		lg.Fatalf("http server exited: %s", err)
 	}
 
+	cryptor := cryptor.New()
+
+	eventConsumer := agentConsumer.New(cryptor, eventPersist, eventStore)
+
+}
+
+func setupServer(cfg config, lg logger.Logger, web http.Handler, rest http.Handler) *graceful.Server {
+	rest = middlewares.WithBasicAuth(lg, rest,
+		middlewares.UserVerifierFunc(func(ctx context.Context, name, secret string) bool {
+			return secret == "secret@123"
+		}),
+	)
+
+	router := mux.NewRouter()
+	router.PathPrefix("/api").Handler(http.StripPrefix("/api", rest))
+	router.PathPrefix("/").Handler(web)
+
+	handler := middlewares.WithRequestLogging(lg, router)
+	handler = middlewares.WithRecovery(lg, handler)
+
+	srv := graceful.NewServer(handler, cfg.GracefulTimeout, os.Interrupt)
+	srv.Log = lg.Errorf
+	srv.Addr = cfg.Addr
+	return srv
+}
+
+func setupConsumer(cfg config, lg logger.Logger, eventStore *mongodb.EventStore) *graceful.Server {
+
+	return
 }
 
 type config struct {

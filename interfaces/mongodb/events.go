@@ -38,3 +38,19 @@ func (events *EventStore) Save(ctx context.Context, event domain.Event) (*domain
 	}
 	return &event, nil
 }
+
+func (events *EventStore) Get(ctx context.Context, name string) (*domain.Event, error) {
+	//TODO
+	event := domain.Event{}
+	return &event, nil
+}
+
+func (events *EventStore) Exists(ctx context.Context, name string) bool {
+	return true
+}
+
+func (events *EventStore) Delete(ctx context.Context, name string) (*domain.Event, error) {
+	//TODO
+	event := domain.Event{}
+	return &event, nil
+}

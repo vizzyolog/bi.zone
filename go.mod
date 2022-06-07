@@ -6,6 +6,7 @@ require (
 	github.com/gorilla/mux v1.8.0
 	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/viper v1.12.0
+	golang.org/x/crypto v0.0.0-20220411220226-7b82a4e95df4
 	gopkg.in/mgo.v2 v2.0.0-20190816093944-a6b53ec6cb22
 )
 

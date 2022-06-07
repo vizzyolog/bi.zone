@@ -1,4 +1,4 @@
-package tcpController
+package agentConsumer
 
 import "app/domain"
 
@@ -10,18 +10,18 @@ type Saver interface {
 	Save(domain.Event) error
 }
 
-type tcpController struct {
+type agentConsumer struct {
 	encryptor Encryptor
 	saver     Saver
 }
 
-func New(encryptor Encryptor, saver Saver) *tcpController {
+func New(encryptor Encryptor, saver Saver) *agentConsumer {
 	//TODO
-	t := tcpController{}
+	t := agentConsumer{}
 	return &t
 }
 
-func (t *tcpController) HandleTCP(data []byte) error {
+func (t *agentConsumer) Handle(data []byte) error {
 
 	return nil
 }

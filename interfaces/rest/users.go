@@ -66,7 +66,7 @@ func (uc *userController) post(wr http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	uc.Infof("new user registered with id '%s'", registered.UserID)
+	uc.Infof("new user registered with id '%s'", registered.Name)
 	respond(wr, http.StatusCreated, registered)
 }
 
